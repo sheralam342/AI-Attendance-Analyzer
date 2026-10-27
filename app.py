@@ -40,7 +40,7 @@ def extract_table_from_word(file):
 uploaded_file = st.file_uploader("Upload Attendance Word File", type=["docx"])
 
 if uploaded_file is not None:
-    # Initialize variables to avoid "not defined" errors
+    # Initialize variables
     df = None
     low_attendance = None
 
@@ -87,13 +87,12 @@ if uploaded_file is not None:
         
         status.update(label="✅ Workflow Complete!", state="complete", expanded=False)
     
-    # Notification that results are ready
     st.toast("Results have been generated! Scroll down to see them.", icon="🎉")
 
     # =========================================================================
-    # DISPLAY RESULTS (Placed clearly below the status box)
+    # DISPLAY RESULTS
     # =========================================================================
-    st.markdown("---") # Adds a visual line
+    st.markdown("---")
     
     col1, col2 = st.columns(2)
 
@@ -114,4 +113,20 @@ if uploaded_file is not None:
         st.subheader("🤖 AI Report Generator")
         if api_key:
             if st.button("Generate AI Warning Reports", type="primary"):
-                with st.spinner("*
+                with st.spinner("OpenRouter AI is analyzing..."):
+                    try:
+                        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+                        student_list_text = low_attendance.to_string(index=False)
+                        prompt = f"I am a teacher. The following students have attendance below 75%:\n{student_list_text}\nWrite a professional warning email. Mention Roll No and Name."
+                        
+                        response = client.chat.completions.create(
+                            model="meta-llama/llama-3.1-8b-instruct", 
+                            messages=[{"role": "system", "content": "You are a professional academic advisor."},
+                                      {"role": "user", "content": prompt}]
+                        )
+                        st.markdown("### 📩 Generated AI Report:")
+                        st.write(response.choices[0].message.content)
+                    except Exception as e:
+                        st.error(f"AI API Error: {e}")
+        else:
+            st.info("Please enter your OpenRouter API key in the sidebar to generate reports.")
