@@ -93,7 +93,15 @@ if uploaded_file is not None:
                                 student_list_text = low_attendance.to_string(index=False)
                                 
                                 # Enhanced Prompt including Roll Numbers
-                                prompt = 
+                                prompt = f"""
+                                I am a teacher. The following students have attendance below 75%:
+                                {student_list_text}
+                                
+                                Please write a professional and firm warning email to these students. 
+                                Make sure to mention their **Roll Number** and **Name** clearly so there is no confusion.
+                                Explain that they are at risk of being barred from exams. 
+                                Give them a tip on how to improve their attendance.
+                                """
                                 
                                 response = client.chat.completions.create(
                                     model="meta-llama/llama-3-8b-instruct", 
