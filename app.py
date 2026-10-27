@@ -10,7 +10,15 @@ st.write("Upload your attendance sheet and use **OpenRouter AI** to generate stu
 
 # --- SIDEBAR: API CONFIGURATION ---
 st.sidebar.header("⚙️ API Configuration")
-api_key = st.sidebar.text_input("Enter OpenRouter API Key", type="password")
+
+# Check if key exists in secrets, otherwise use text input
+if "OPENROUTER_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENROUTER_API_KEY"]
+    st.sidebar.success("Using API Key from Secrets ✅")
+else:
+    api_key = st.sidebar.text_input("Enter OpenRouter API Key", type="password")
+    if not api_key:
+        st.sidebar.warning("Please enter your API key to enable AI features.")
 
 # --- FILE UPLOAD ---
 uploaded_file = st.file_uploader("Upload Attendance CSV", type="csv")
@@ -22,7 +30,7 @@ if uploaded_file is not None:
         st.subheader("📋 Uploaded Attendance Data")
         st.write(df)
 
-        # 2. Data Validation (Ensure there is at least one name column and one date column)
+        # 2. Data Validation
         if df.shape[1] < 2:
             st.error("Error: The CSV must have at least two columns (Student Name and Attendance dates).")
         else:
@@ -30,12 +38,10 @@ if uploaded_file is not None:
             names = df.iloc[:, 0]
             attendance_data = df.iloc[:, 1:]
             
-            # Calculate Total Days and Days Present
             total_days = attendance_data.shape[1]
             present_days = attendance_data.apply(lambda row: (row == 'P').sum(), axis=1)
             percentage = (present_days / total_days) * 100
 
-            # Create Summary Table
             summary_df = pd.DataFrame({
                 'Student Name': names,
                 'Attendance %': percentage
@@ -51,12 +57,10 @@ if uploaded_file is not None:
                 st.divider()
                 st.subheader("🤖 AI Report Generator")
                 
-                # 4. AI Integration: Use OpenRouter to generate the warning
                 if api_key:
                     if st.button("Generate AI Warning Reports"):
                         with st.spinner("OpenRouter AI is analyzing and writing..."):
                             try:
-                                # Initialize OpenAI client for OpenRouter
                                 client = OpenAI(
                                     base_url="https://openrouter.ai/api/v1",
                                     api_key=api_key,
@@ -88,3 +92,6 @@ if uploaded_file is not None:
                     st.info("Please enter your OpenRouter API key in the sidebar to unlock AI reports.")
             else:
                 st.success("All students have 75% or more attendance! 🎉")
+
+    except Exception as e:
+        st.error(f"File Error: {e}. Please ensure you are uploading a valid CSV file.")
