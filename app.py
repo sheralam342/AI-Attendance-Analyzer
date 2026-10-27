@@ -50,11 +50,9 @@ if uploaded_file is not None:
         st.subheader("📋 Extracted Attendance Data")
         st.write(df)
 
-        # Validation: Now we need at least 3 columns (Roll No, Name, and at least 1 Day)
         if df.shape[1] < 3:
             st.error("Error: The table must have at least three columns (Roll No, Student Name, and Attendance dates).")
         else:
-            # Logic: Col 0 = Roll No, Col 1 = Name, Col 2+ = Attendance
             roll_numbers = df.iloc[:, 0]
             names = df.iloc[:, 1]
             attendance_data = df.iloc[:, 2:]
@@ -63,14 +61,12 @@ if uploaded_file is not None:
             present_days = attendance_data.apply(lambda row: (row.astype(str) == 'P').sum(), axis=1)
             percentage = (present_days / total_days) * 100
 
-            # Create Summary Table including Roll Number
             summary_df = pd.DataFrame({
                 'Roll No': roll_numbers,
                 'Student Name': names,
                 'Attendance %': percentage
             })
 
-            # Filtering: Find students below 75%
             low_attendance = summary_df[summary_df['Attendance %'] < 75]
 
             st.subheader("⚠️ Low Attendance List (< 75%)")
@@ -89,22 +85,20 @@ if uploaded_file is not None:
                                     api_key=api_key,
                                 )
                                 
-                                # Convert low attendance list to text for AI
                                 student_list_text = low_attendance.to_string(index=False)
-                                
-                                # Enhanced Prompt including Roll Numbers
                                 prompt = f"""
                                 I am a teacher. The following students have attendance below 75%:
                                 {student_list_text}
                                 
                                 Please write a professional and firm warning email to these students. 
-                                Make sure to mention their **Roll Number** and **Name** clearly so there is no confusion.
+                                Mention their Roll Number and Name clearly.
                                 Explain that they are at risk of being barred from exams. 
-                                Give them a tip on how to improve their attendance.
+                                Give them a tip on how to improve.
                                 """
                                 
+                                # UPDATED MODEL HERE: llama-3.1-8b-instruct
                                 response = client.chat.completions.create(
-                                    model="meta-llama/llama-3-8b-instruct", 
+                                    model="meta-llama/llama-3.1-8b-instruct", 
                                     messages=[
                                         {"role": "system", "content": "You are a professional academic advisor."},
                                         {"role": "user", "content": prompt},
