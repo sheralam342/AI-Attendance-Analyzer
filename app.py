@@ -87,4 +87,4 @@ if uploaded_file is not None:
                 else:
                     st.info("Please enter your OpenRouter API key in the sidebar to unlock AI reports.")
             else:
-                st.success("All students have 75% or more attendance! 🎉")*
+                st.success("All students have 75% or more attendance! 🎉")
