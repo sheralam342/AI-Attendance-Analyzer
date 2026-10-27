@@ -12,7 +12,6 @@ st.write("Upload your attendance **Word Document (.docx)** and use **OpenRouter 
 # --- SIDEBAR: API CONFIGURATION ---
 st.sidebar.header("⚙️ API Configuration")
 
-# Check if key exists in secrets, otherwise use text input
 if "OPENROUTER_API_KEY" in st.secrets:
     api_key = st.secrets["OPENROUTER_API_KEY"]
     st.sidebar.success("Using API Key from Secrets ✅")
@@ -28,14 +27,11 @@ def extract_table_from_word(file):
         if not doc.tables:
             return None
         
-        # Get the first table in the document
         table = doc.tables[0]
         data = []
         for row in table.rows:
-            # Get text from every cell in the row
             data.append([cell.text.strip() for cell in row.cells])
         
-        # Convert to DataFrame: First row is header, remaining are data
         df = pd.DataFrame(data[1:], columns=data[0])
         return df
     except Exception as e:
@@ -46,34 +42,35 @@ def extract_table_from_word(file):
 uploaded_file = st.file_uploader("Upload Attendance Word File", type=["docx"])
 
 if uploaded_file is not None:
-    # 1. Extract data from Word
     df = extract_table_from_word(uploaded_file)
 
     if df is None:
-        st.error("❌ No table found! Please ensure your attendance data is inside a **Table** in the Word document.")
+        st.error("❌ No table found! Please ensure your data is inside a **Table** in the Word document.")
     else:
         st.subheader("📋 Extracted Attendance Data")
         st.write(df)
 
-        # 2. Data Validation
-        if df.shape[1] < 2:
-            st.error("Error: The table must have at least two columns (Student Name and Attendance dates).")
+        # Validation: Now we need at least 3 columns (Roll No, Name, and at least 1 Day)
+        if df.shape[1] < 3:
+            st.error("Error: The table must have at least three columns (Roll No, Student Name, and Attendance dates).")
         else:
-            # Logic: First column = Name, the rest = Attendance marks (P/A)
-            names = df.iloc[:, 0]
-            attendance_data = df.iloc[:, 1:]
+            # Logic: Col 0 = Roll No, Col 1 = Name, Col 2+ = Attendance
+            roll_numbers = df.iloc[:, 0]
+            names = df.iloc[:, 1]
+            attendance_data = df.iloc[:, 2:]
             
             total_days = attendance_data.shape[1]
-            # Count 'P' for present
             present_days = attendance_data.apply(lambda row: (row.astype(str) == 'P').sum(), axis=1)
             percentage = (present_days / total_days) * 100
 
+            # Create Summary Table including Roll Number
             summary_df = pd.DataFrame({
+                'Roll No': roll_numbers,
                 'Student Name': names,
                 'Attendance %': percentage
             })
 
-            # 3. Filtering: Find students below 75%
+            # Filtering: Find students below 75%
             low_attendance = summary_df[summary_df['Attendance %'] < 75]
 
             st.subheader("⚠️ Low Attendance List (< 75%)")
@@ -92,8 +89,11 @@ if uploaded_file is not None:
                                     api_key=api_key,
                                 )
                                 
+                                # Convert low attendance list to text for AI
                                 student_list_text = low_attendance.to_string(index=False)
-                                prompt = f"I am a teacher. The following students have attendance below 75%:\n{student_list_text}\nWrite a professional warning email to them."
+                                
+                                # Enhanced Prompt including Roll Numbers
+                                prompt = 
                                 
                                 response = client.chat.completions.create(
                                     model="meta-llama/llama-3-8b-instruct", 
@@ -107,6 +107,6 @@ if uploaded_file is not None:
                             except Exception as e:
                                 st.error(f"AI API Error: {e}")
                 else:
-                    st.info("Please enter your OpenRouter API key in the sidebar to unlock AI reports.")
+                    st.info("Please enter your OpenRouter API key in the sidebar.")
             else:
                 st.success("All students have 75% or more attendance! 🎉")
